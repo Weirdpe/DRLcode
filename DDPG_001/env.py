@@ -191,7 +191,7 @@ class IIov_Env(object):
         self.rsu_info = []
         self.mbs_info = []
         self.max_slot = max_slot
-        self.task = np.zeros(shape=(self.max_slot, self.vehicle_number+self.rsu_number+1), dtype=Task)
+        self.task = np.zeros(shape=(self.max_slot, self.vehicle_number + self.rsu_number + 1), dtype=Task)
         # 'loc_m_x': 1,
         # 'loc_m_y': 2,
         # 'compute_r_freq': 2,
@@ -399,15 +399,14 @@ class IIov_Env(object):
             self.task[self.slot][index] = task.copy()
             self.Buffer_task[index] = task
 
-            task_observation.append(self.take_weight(task['priority'],task['delay']))
+            task_observation.append(self.take_weight(task['priority'], task['delay']))
 
         task_observation = np.array(task_observation)
-
-
 
         return vehicle_queue_observation, rsu_queue_observation, mbs_queue_observation, task_observation
 
     def step(self, action):
+        # 
         obs = 0
         reward = 0
         done = False

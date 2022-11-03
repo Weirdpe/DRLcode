@@ -199,7 +199,7 @@ class Env():
                     delay = (task["finish_slot"] - task["generate_slot"])/10
 
                     # 如果超时，当作丢弃，加入到回报函数中
-                    if(delay > task["delay"]):
+                    if delay > task["delay"]:
                         self.data.drop_task_number[self.slot] += 1
                     # 记录任务时延
                     self.data.delay[task["generate_slot"]
@@ -311,7 +311,7 @@ class Env():
                 delay = self.parameter.slot_length + cloud_delay
 
                 # 如果超时，当作丢弃，加入到回报函数中
-                if(delay > task["delay"]):
+                if delay > task["delay"]:
                     # 任务超时，添加超时惩罚
                     self.task_delay[device] = self.parameter.overtime_penalty
                     self.drop += 1
