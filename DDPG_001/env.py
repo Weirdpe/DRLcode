@@ -6,6 +6,7 @@ import numpy as np
 import math as mh
 
 """
+到底行不行啊
 奖励函数
 This is a update
 """
@@ -406,7 +407,7 @@ class IIov_Env(object):
         return vehicle_queue_observation, rsu_queue_observation, mbs_queue_observation, task_observation
 
     def step(self, action):
-        # 
+        #
         obs = 0
         reward = 0
         done = False
