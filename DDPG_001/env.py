@@ -6,7 +6,6 @@ import numpy as np
 import math as mh
 
 """
-到底行不行啊
 奖励函数
 This is a update
 """
@@ -235,19 +234,16 @@ class IIov_Env(object):
         self.priority_max = 3
         self.priority_min = 1
 
-        # 车辆任务队列
-        self.vec_queue = [[] for _ in range(self.vehicle_number)]
-        # RSU任务队列
-        self.rsu_queue = [[] for _ in range(self.rsu_number)]
-        # MBS任务队列
-        self.mbs_queue = []
+        # 车辆、RSU、MBS任务队列
+        self.waitting_queue = [[] for _ in range(self.vehicle_number + self.rsu_number + 1)]
+
         # 用户的信道增益
         self.channel_gain = np.random.uniform(
             low=0.5, high=0.8, size=self.vehicle_number) * 1e-8
         # 噪声功率 e-13
         self.noise = np.random.uniform(low=0.7, high=0.9, size=self.vehicle_number) * 1e-13
         # 服务器CPU频率
-        self.vec_frequency = np.random.randint(low=2, high=6, size=self.vehicle_number)
+        self.server_frequency = np.random.randint(low=2, high=6, size=self.vehicle_number + self.rsu_number)
         # 用于存放该时隙下生成的任务
         self.current_production = np.zeros(shape=self.vehicle_number, dtype=Task)
 
@@ -270,6 +266,9 @@ class IIov_Env(object):
         # log函数底
         self.a = 0.6
 
+        # 当前时隙
+        self.slot = 0
+
         # 任务权重 a1和a2
         self.a1 = 0.8
         self.a2 = 0.5
@@ -282,6 +281,18 @@ class IIov_Env(object):
         self.energy_compute = np.zeros(shape=self.vehicle_number)
         # 传输消耗的能量
         self.energy_transmission = np.zeros(shape=self.vehicle_number)
+
+        # 服务器保存点：保存未计算的任务在下一时隙消耗的时间
+        self.points_server = np.zeros(shape=(self.vehicle_number + rsu_number))
+
+        # 丢弃的任务数量
+        self.drop_task_number = np.zeros(shape=self.max_slot)
+
+        # v-v范围数组
+        self.vec_vec_range = [[] for _ in range(self.vehicle_number)]
+
+        # v-v范围
+        self.v2vrange = 300
         # 设置随机数种子
         np.random.seed(1)
 
@@ -351,8 +362,19 @@ class IIov_Env(object):
         for vec_i in range(self.vehicle_number):
             for rsu_i in range(self.rsu_number):
                 if math.sqrt(math.pow((self.vehicles[vec_i].vec_loc[0] - self.rsus[rsu_i].rsu_loc[0]), 2) + \
-                             math.pow((self.vehicles[vec_i].vec_loc[0] - self.rsus[rsu_i].rsu_loc[0]), 2)) <= 20:
+                             math.pow((self.vehicles[vec_i].vec_loc[1] - self.rsus[rsu_i].rsu_loc[1]), 2)) <= 20:
                     self.v_r_range[vec_i, rsu_i] = 1
+
+    # 判断各车辆传输范围内的车辆
+    # if math.sqrt(math.pow((self.vehicles[vec_i].vec_loc[0] - self.rsus[rsu_i].rsu_loc[0]), 2) + \
+    #                              math.pow((self.vehicles[vec_i].vec_loc[1] - self.rsus[rsu_i].rsu_loc[1]), 2)) <= 20:
+    def v_v_judgement(self):
+        for vec_i in range(self.vehicle_number):
+            for vec_j in range(self.vehicle_number):
+                if math.sqrt(math.pow((self.vehicles[vec_i].vec_loc[0] - self.vehicles[vec_j].vec_loc[0]), 2) + \
+                             math.pow((self.vehicles[vec_i].vec_loc[1] - self.vehicles[vec_j].vec_loc[1]), 2)) <= \
+                        self.v2vrange:
+                    self.vec_vec_range[vec_i].append(self.vehicles[vec_j].vec_id)
 
     # 生成任务，返回当前状态
     def observation(self):
@@ -407,7 +429,33 @@ class IIov_Env(object):
         return vehicle_queue_observation, rsu_queue_observation, mbs_queue_observation, task_observation
 
     def step(self, action):
+        # # 处理上个时隙传输到服务器的任务
+        # for server in range(self.vehicle_number + self.rsu_number):
+        #     time = self.points_server[server]
+        #     if time > self.slot_length:
+        #         self.points_server[server] = time - self.slot_length
+        #     if time > 0:
+        #         self.waitting_queue[server].pop(0)
+        #     # 取每个任务队列的头结点
+        #     while len(self.waitting_queue[server]) > 0:
+        #         task = self.waitting_queue[server][0]
+        #         # 计算任务的处理时间
+        #         time = time + (task['cpu'] /
+        #                        self.server_frequency[server])
+        #         # 如果这个任务当前时隙无法完成计算，下一个时隙继续计算，任务不出队列
+        #         if time > self.slot_length:
+        #             finish_time = self.slot + time * 10
+        #             task['finish_slot'] = finish_time
+        #             task['priority'] = 0
+        #             # 时延转化为S
+        #             delay = (task['finish_slot']) - task['generate_slot'] / 10
         #
+        #             if delay > task['delay']:
+        #                 self.drop_task_number[self.slot] += 1
+        #             # 记录任务时延
+
+        # 计算各车辆的传输范围
+        
         obs = 0
         reward = 0
         done = False
