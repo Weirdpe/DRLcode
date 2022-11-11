@@ -291,6 +291,7 @@ class IIov_Env(object):
         # v-v范围数组
         self.vec_vec_range = [[] for _ in range(self.vehicle_number)]
 
+
         # v-v范围
         self.v2vrange = 300
         # 设置随机数种子
@@ -455,7 +456,33 @@ class IIov_Env(object):
         #             # 记录任务时延
 
         # 计算各车辆的传输范围
-        
+
+        for server in range(self.vehicle_number + self.rsu_number):
+            # 从上个任务开始
+            curr_time = self.points_server[server]
+
+            if 1 <= server <= self.vehicle_number:
+                while len(self.vehicles[server].task_queue) > 0:
+                    task = self.vehicles[server].task_queue.pop(0)
+                    # 当前任务的计算时间
+                    computer_time = task.workload / self.vehicles[server].compute_freq
+                    # 当前任务的传输时间
+                    trans_time = task.size / self.transmission_speed(self.vehicles[server].vec_id, power=10)
+                    curr_time = trans_time
+                    if curr_time < self.slot_length:
+                        curr_time = trans_time + computer_time
+                        if curr_time > self.slot_length:
+                            self.points_server[server] = curr_time - self.slot_length
+            elif self.vehicle_number + 1 <= server <= self.vehicle_number + self.rsu_number:
+                while len(self.rsus[server].task_queue) > 0:
+                    task = self.rsus[server].task_queue.pop(0)
+
+
+            if curr_time <= self.slot_length:
+                self.points_server[server] = 0
+
+
+
         obs = 0
         reward = 0
         done = False
